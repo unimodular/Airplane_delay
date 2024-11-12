@@ -1,4 +1,6 @@
+from faicons import icon_svg
 from shiny import App, ui, render, reactive
+from shinywidgets import output_widget, render_widget
 import requests
 import plotly.express as px
 import pandas as pd
@@ -34,30 +36,97 @@ with open('all_dests.txt', 'r') as file:
 
 # Define UI
 app_ui = ui.page_fillable(
+    ui.tags.div(
+        ui.h1("Holiday Season Flight Prediction", style="text-align: left; margin-top: 0;"),
+        style="position: absolute; top: 10px; left: 10px; z-index: 1000;"
+    ),
+    
     ui.navset_card_pill(
+        ui.nav_spacer(),
         ui.nav_panel(
             "Flight Prediction",
             "Prediction of Arrival Delays and Flight Cancellation Rates for the Next 7 Days",
-            ui.layout_columns(
-                ui.card(
+            ui.page_sidebar(
+                ui.sidebar(
                     # User Input Section
                     ui.input_numeric("year1", "Year (departure)", value=2024, min=2024),
-                    ui.input_select("month1", "Month (departure)", choices=[1, 11, 12]),
+                    ui.input_select("month1", "Month (departure)", choices=[1, 11, 12], selected=11),
                     ui.input_numeric("dayofmonth1", "Day of Month (departure)", value=15, min=1, max=31),
                     ui.input_numeric("dayofweek1", "Day of Week (departure)", value=5, min=1, max=7),
-                    ui.input_select("marketing_airline1", "Marketing Airline Network", choices=all_airlines),
-                    ui.input_select("origin1", "Origin Airport", choices=all_origins),
-                    ui.input_select("dest1", "Destination Airport", choices=all_dests),
-                    ui.input_numeric("dep_time1", "Scheduled Departure Time (e.g. 1 means 00:01, 1405 means 14:05)", value=1030, min=0, max=2359),
-                    ui.input_numeric("arr_time1", "Scheduled Arrival Time (e.g. 1 means 00:01, 1405 means 14:05)", value=1430, min=0, max=2359),
-                    ui.input_action_button("predict_btn", "Predict")
+                    ui.input_select("marketing_airline1", "Marketing Airline Network", choices=all_airlines, selected='AA'),
+                    ui.input_select("origin1", "Origin Airport", choices=all_origins, selected='ORD'),
+                    ui.input_select("dest1", "Destination Airport", choices=all_dests, selected='LGA'),
+                    ui.input_numeric("dep_time1", "Scheduled Departure Time (e.g. 1 means 00:01, 1405 means 14:05)", value=600, min=0, max=2359),
+                    ui.input_numeric("arr_time1", "Scheduled Arrival Time (e.g. 1 means 00:01, 1405 means 14:05)", value=900, min=0, max=2359),
+                    ui.input_action_button("predict_btn", "Predict", theme="gradient-blue-indigo")
                 ),
                 
-                ui.card(
-                    # API Message and Predictions
-                    ui.output_text("error_message_1"),
-                    ui.output_data_frame("api_message"),
-                    ui.output_text("delay_cancel_prediction")
+                ui.output_text_verbatim("error_message_1"),
+                
+                ui.layout_column_wrap(
+                    ui.value_box(
+                        "Hourly DewPoint Temperature",
+                        ui.output_text("HourlyDewPointTemperature"),
+                        theme="gradient-blue-indigo",
+                        showcase=icon_svg("droplet"),
+                    ),
+                    ui.value_box(
+                        "Hourly DryBulb Temperature",
+                        ui.output_text("HourlyDryBulbTemperature"),
+                        theme="gradient-blue-indigo",
+                        showcase=icon_svg("temperature-half"),
+                    ),
+                    ui.value_box(
+                        "Hourly Precipitation",
+                        ui.output_text("HourlyPrecipitation"),
+                        theme="gradient-blue-indigo",
+                        showcase=icon_svg("snowflake"),
+                    ),
+                    ui.value_box(
+                        "Hourly Pressure Change",
+                        ui.output_text("HourlyPressureChange"),
+                        theme="gradient-blue-indigo",
+                        showcase=icon_svg("scale-unbalanced"),
+                    ),
+                    ui.value_box(
+                        "Hourly Relative Humidity",
+                        ui.output_text("HourlyRelativeHumidity"),
+                        theme="gradient-blue-indigo",
+                        showcase=icon_svg("water"),
+                    ),
+                    ui.value_box(
+                        "Hourly SeaLevel Pressure",
+                        ui.output_text("HourlySeaLevelPressure"),
+                        theme="gradient-blue-indigo",
+                        showcase=icon_svg("fish"),
+                    ),
+                    ui.value_box(
+                        "Hourly Visibility",
+                        ui.output_text("HourlyVisibility"),
+                        theme="gradient-blue-indigo",
+                        showcase=icon_svg("smog"),
+                    ),
+                    ui.value_box(
+                        "Hourly Wind Speed",
+                        ui.output_text("HourlyWindSpeed"),
+                        theme="gradient-blue-indigo",
+                        showcase=icon_svg("wind"),
+                    )
+                ),
+                
+                ui.layout_column_wrap(
+                    ui.value_box(
+                        "Predicted Arrival Delay",
+                        ui.output_text("PredictedArrivalDelay"),
+                        theme="bg-gradient-blue-cyan",
+                        showcase=icon_svg("plane-circle-exclamation"),
+                    ),
+                    ui.value_box(
+                        "Predicted Cancellation Probability",
+                        ui.output_text("PredictedCancellationProbability"),
+                        theme="bg-gradient-blue-cyan",
+                        showcase=icon_svg("plane-circle-xmark"),
+                    )
                 )
             )
         ),
@@ -65,8 +134,8 @@ app_ui = ui.page_fillable(
         ui.nav_panel(
             "General Prediction",
             "General Prediction using Partial Variables",
-            ui.layout_columns(
-                ui.card(
+            ui.page_sidebar(
+                ui.sidebar(
                     # User Input Section
                     ui.input_select("origin2", "Origin Airport", choices=all_origins),
                     ui.input_select("dest2", "Destination Airport", choices=all_dests),
@@ -88,46 +157,97 @@ app_ui = ui.page_fillable(
                     ui.input_action_button("general_predict_btn", "Predict")
                 ),
                 
-                ui.card(
-                    # Display prediction progress and suggestions
-                    ui.output_text("error_message_2"),
-                    ui.output_text("general_delay_cancel_prediction")
+                ui.output_text_verbatim("error_message_2"),
+                
+                ui.layout_column_wrap(
+                    ui.value_box(
+                        "Average Predicted Delay",
+                        ui.output_text("AveragePredictedDelay"),
+                        theme="bg-gradient-cyan-green",
+                        showcase=icon_svg("clock"),
+                    ),
+                    ui.value_box(
+                        "Minimum Predicted Delay",
+                        ui.output_text("MinimumPredictedDelay"),
+                        theme="bg-gradient-cyan-green",
+                        showcase=icon_svg("clock"),
+                    ),
+                    ui.value_box(
+                        "Maximum Predicted Delay",
+                        ui.output_text("MaximumPredictedDelay"),
+                        theme="bg-gradient-cyan-green",
+                        showcase=icon_svg("clock"),
+                    ),
+                ),
+                
+                ui.layout_column_wrap(
+                    ui.value_box(
+                        "Average Cancellation Probability",
+                        ui.output_text("AverageCancellationProbability"),
+                        theme="bg-gradient-cyan-green",
+                        showcase=icon_svg("plane-slash"),
+                    ),
+                    ui.value_box(
+                        "Minimum Cancellation Probability",
+                        ui.output_text("MinimumCancellationProbability"),
+                        theme="bg-gradient-cyan-green",
+                        showcase=icon_svg("plane-slash"),
+                    ),
+                    ui.value_box(
+                        "Maximum Cancellation Probability",
+                        ui.output_text("MaximumCancellationProbability"),
+                        theme="bg-gradient-cyan-green",
+                        showcase=icon_svg("plane-slash"),
+                    ),
+                ),
+                
+                ui.value_box(
+                    "Suggestions",
+                    ui.output_text("suggestions"),
+                    theme="bg-gradient-cyan-green",
+                    showcase=icon_svg("lightbulb"),
                 )
             )
         ),
-        
+            
         ui.nav_panel(
             "Statistical Data",
             "Presentation and Comparison of Airline and Airport Statistical Data",
-            ui.layout_columns(
-                ui.card(
+            ui.page_sidebar(
+                ui.sidebar(
                     # User Input Section for airline and airport selection
-                    ui.input_selectize("selected_airlines", "Select Airlines", choices=all_airlines, multiple=True),
-                    ui.input_selectize("selected_origins", "Select Origin Airports", choices=all_origins, multiple=True),
-                    ui.input_selectize("selected_dests", "Select Destination Airports", choices=all_dests, multiple=True)
+                    ui.input_selectize("selected_airlines", "Select Airlines", choices=all_airlines, multiple=True, options={"plugins": ["clear_button"]}),
+                    ui.input_selectize("selected_origins", "Select Origin Airports", choices=all_origins, multiple=True, options={"plugins": ["clear_button"]}),
+                    ui.input_selectize("selected_dests", "Select Destination Airports", choices=all_dests, multiple=True, options={"plugins": ["clear_button"]})
                 ),
                 
                 ui.card(
                     ui.layout_columns(
-                        ui.card(ui.output_plot("airline_delay_plot")),
-                        ui.card(ui.output_plot("airline_cancel_plot"))
+                        ui.card(output_widget("airline_delay_plot")),
+                        ui.card(output_widget("airline_cancel_plot"))
                     ),
                     ui.layout_columns(
-                        ui.card(ui.output_plot("origin_delay_plot")),
-                        ui.card(ui.output_plot("origin_cancel_plot"))
+                        ui.card(output_widget("origin_delay_plot")),
+                        ui.card(output_widget("origin_cancel_plot"))
                     ),
                     ui.layout_columns(
-                        ui.card(ui.output_plot("dest_delay_plot")),
-                        ui.card(ui.output_plot("dest_cancel_plot"))
+                        ui.card(output_widget("dest_delay_plot")),
+                        ui.card(output_widget("dest_cancel_plot"))
                     )
                 )
             )
-        ),
-        
-        title="Holiday Season Flight Prediction",
-        footer="Data source: https://www.transtats.bts.gov/ & https://www.ncei.noaa.gov/ | Contact: https://github.com/unimodular/Airplane_delay"
+        )
     ),
+    
+    ui.card(
+        ui.tags.footer(
+            "Data source: https://www.transtats.bts.gov/ & https://www.ncei.noaa.gov/ | Contact: https://github.com/unimodular/Airplane_delay",
+            style="position: fixed; bottom: 0; left: 0; width: 100%; background-color: #f8f9fa; z-index: 1000; text-align: center; padding: 10px;"
+        )
+    )
 )
+
+
 
 # Define server
 def server(input, output, session):
@@ -269,21 +389,59 @@ def server(input, output, session):
         time = time.astimezone(pytz.UTC)
         weather_data = get_weather_data(input.origin1(), time)
         
-        for key in weather_data:
-            weather_data[key] = [weather_data[key]]
-        
-        return pd.DataFrame(weather_data)
+        return weather_data
 
     @output
-    @render.data_frame
-    def api_message():
-        return render.DataGrid(get_api_message().round(2))
+    @render.text
+    def HourlyDewPointTemperature():
+        return f"{round(get_api_message()['HourlyDewPointTemperature'],2)}"
     
     @output
     @render.text
-    def delay_cancel_prediction():
-        delay, cancel_prob = predict_delay_cancellation()
-        return f"Predicted Arrival Delay: {delay} minutes.\nPredicted Cancellation Probability: {cancel_prob:.2%}"
+    def HourlyDryBulbTemperature():
+        return f"{round(get_api_message()['HourlyDryBulbTemperature'],2)}"
+    
+    @output
+    @render.text
+    def HourlyPrecipitation():
+        return f"{round(get_api_message()['HourlyPrecipitation'],2)}"
+    
+    @output
+    @render.text
+    def HourlyPressureChange():
+        return f"{round(get_api_message()['HourlyPressureChange'],2)}"
+    
+    @output
+    @render.text
+    def HourlyRelativeHumidity():
+        return f"{round(get_api_message()['HourlyRelativeHumidity'],2)}"
+    
+    @output
+    @render.text
+    def HourlySeaLevelPressure():
+        return f"{round(get_api_message()['HourlySeaLevelPressure'],2)}"
+    
+    @output
+    @render.text
+    def HourlyVisibility():
+        return f"{round(get_api_message()['HourlyVisibility'],2)}"
+    
+    @output
+    @render.text
+    def HourlyWindSpeed():
+        return f"{round(get_api_message()['HourlyWindSpeed'],2)}"
+    
+    @output
+    @render.text
+    def PredictedArrivalDelay():
+        delay, _ = predict_delay_cancellation()
+        return f"{delay} minutes"
+    
+    @output
+    @render.text
+    def PredictedCancellationProbability():
+        _, cancel_prob = predict_delay_cancellation()
+        return f"{cancel_prob*100}%"
     
     
     
@@ -298,10 +456,6 @@ def server(input, output, session):
                         return f"The Day of Week should be {date.weekday()+1}."
             except ValueError as e:
                 return "The selected date is not valid. Please check."
-            else:
-                future_7days = datetime.now() + timedelta(days=7)
-                if date > future_7days or date < datetime.now():
-                    return "The selected date is not within 7 days from now. Please use the General Prediction."
         
         if input.dep_time2() != "":
             if not (0 <= int(input.dep_time2()) <= 2359):
@@ -411,10 +565,12 @@ def server(input, output, session):
                                                  'HourlyVisibility', 'HourlyWindSpeed'])
 
         month_days = {1: 31, 11: 30, 12: 31}
-        df = df[df.apply(lambda row: row['DayofMonth'] <= month_days.get(row['Month'], 31), axis=1)]
-        df['date'] = pd.to_datetime(df[['Year', 'Month', 'DayofMonth']])
+        df = df[df.apply(lambda row: row['DayofMonth'] <= month_days.get(row['Month']), axis=1)]
+        df = df.rename(columns={'DayofMonth':'Day'})
+        df['date'] = pd.to_datetime(df[['Year', 'Month', 'Day']])
         df['DayOfWeek'] = df['date'].dt.dayofweek + 1
         df.drop(columns=['date'], inplace=True)
+        df = df.rename(columns={'Day':'DayofMonth'})
         return df
     
     @reactive.event(input.general_predict_btn)
@@ -426,37 +582,67 @@ def server(input, output, session):
         model_data = prepare_input_data_2(input)
         encoder_cols = ['Year', 'Month', 'DayofMonth', 'DayOfWeek',
                         'Marketing_Airline_Network', 'Origin', 'Dest']
-        scaler_cols = ['CRSDepTime', 'CRSArrTime',
-                       'HourlyDewPointTemperature', 'HourlyDryBulbTemperature',
+        scaler_cols = ['HourlyDewPointTemperature', 'HourlyDryBulbTemperature',
                        'HourlyPrecipitation', 'HourlyPressureChange',
                        'HourlyRelativeHumidity', 'HourlySeaLevelPressure',
-                       'HourlyVisibility', 'HourlyWindSpeed']
+                       'HourlyVisibility', 'HourlyWindSpeed', 'CRSDepTime', 'CRSArrTime']
         
         # Delay prediction for all values of missing optional fields
         delay_features = delay_scaler.transform(model_data[scaler_cols])
-        delay_features[encoder_cols] = delay_encoder.transform(model_data[encoder_cols])
+        delay_features = hstack([csr_matrix(delay_features), delay_encoder.transform(model_data[encoder_cols])])
         delay_prediction = delay_model.predict(delay_features)
         delay_mean, delay_min, delay_max = np.mean(delay_prediction), np.min(delay_prediction), np.max(delay_prediction)
-
+        
         # Cancellation prediction for all values of missing optional fields
         cancel_features = cancel_scaler.transform(model_data[scaler_cols])
-        cancel_features[encoder_cols] = cancel_encoder.transform(model_data[encoder_cols])
+        cancel_features = hstack([csr_matrix(cancel_features), cancel_encoder.transform(model_data[encoder_cols])])
         cancel_prob = cancel_model.predict_proba(cancel_features)[:, 1]
         cancel_mean, cancel_min, cancel_max = np.mean(cancel_prob), np.min(cancel_prob), np.max(cancel_prob)
 
         return delay_mean, delay_min, delay_max, cancel_mean, cancel_min, cancel_max
-
+    
     @output
     @render.text
-    def general_delay_cancel_prediction():
-        delay_mean, delay_min, delay_max, cancel_mean, cancel_min, cancel_max = predict_general()
+    def AveragePredictedDelay():
+        delay_mean, _, _, _, _, _ = predict_general()
+        return f"Average Predicted Delay: {delay_mean:.2f} minutes"
+    
+    @output
+    @render.text
+    def MinimumPredictedDelay():
+        _, delay_min, _, _, _, _ = predict_general()
+        return f"Minimum Predicted Delay: {delay_min:.2f} minutes"
+    
+    @output
+    @render.text
+    def MaximumPredictedDelay():
+        _, _, delay_max, _, _, _ = predict_general()
+        return f"Maximum Predicted Delay: {delay_max:.2f} minutes"
+    
+    @output
+    @render.text
+    def AverageCancellationProbability():
+        _, _, _, cancel_mean, _, _ = predict_general()
+        return f"Average Cancellation Probability: {cancel_mean:.2%}"
+    
+    @output
+    @render.text
+    def MinimumCancellationProbability():
+        _, _, _, _, cancel_min, _ = predict_general()
+        return f"Minimum Cancellation Probability: {cancel_min:.2%}"
+    
+    @output
+    @render.text
+    def MaximumCancellationProbability():
+        _, _, _, _, _, cancel_max = predict_general()
+        return f"Maximum Cancellation Probability: {cancel_max:.2%}"
+    
+    @output
+    @render.text
+    def suggestions():
+        delay_mean, _, _, cancel_mean, _, _ = predict_general()
         
-        advice = [f"Average Predicted Delay: {delay_mean:.2f} minutes",
-                f"Minimum Predicted Delay: {delay_min:.2f} minutes",
-                f"Maximum Predicted Delay: {delay_max:.2f} minutes",
-                f"Average Cancellation Probability: {cancel_mean:.2%}",
-                f"Minimum Cancellation Probability: {cancel_min:.2%}",
-                f"Maximum Cancellation Probability: {cancel_max:.2%}"]
+        advice = []
         if delay_mean > 30:
             advice.append("Consider booking an earlier flight to avoid delays.")
         if cancel_mean > 0.2:
@@ -465,18 +651,18 @@ def server(input, output, session):
             advice.append("Your flight schedule looks optimal.")
         return "\n".join(advice)
     
-    
-    
+        
     #--------------Statistical Data---------------
     @output
-    @render.plot
+    @render_widget
     def airline_delay_plot():
         data = pd.read_csv("airline_stats.csv")
         selected_airlines = input.selected_airlines()
-        if selected_airlines != None:
+        if selected_airlines:
             if isinstance(selected_airlines, str):
                 selected_airlines = [selected_airlines]
             data = data[data['Marketing_Airline_Network'].isin(selected_airlines)]
+        data = data.sort_values(by='AvgDelay', ascending=False)
         fig = px.bar(data, 
                      x='Marketing_Airline_Network', 
                      y='AvgDelay', 
@@ -486,14 +672,15 @@ def server(input, output, session):
 
     
     @output
-    @render.plot
+    @render_widget
     def airline_cancel_plot():
         data = pd.read_csv("airline_stats.csv")
         selected_airlines = input.selected_airlines()
-        if selected_airlines != None:
+        if selected_airlines:
             if isinstance(selected_airlines, str):
                 selected_airlines = [selected_airlines]
             data = data[data['Marketing_Airline_Network'].isin(selected_airlines)]
+        data = data.sort_values(by='CancelRate', ascending=False)
         fig = px.bar(data, 
                      x='Marketing_Airline_Network', 
                      y='CancelRate', 
@@ -502,14 +689,15 @@ def server(input, output, session):
         return fig
     
     @output
-    @render.plot
+    @render_widget
     def origin_delay_plot():
         data = pd.read_csv("origin_stats.csv")
         selected_origins = input.selected_origins()
-        if selected_origins != None:
+        if selected_origins:
             if isinstance(selected_origins, str):
                 selected_origins = [selected_origins]
             data = data[data['Origin'].isin(selected_origins)]
+        data = data.sort_values(by='AvgDelay', ascending=False)
         fig = px.bar(data, 
                      x='Origin', 
                      y='AvgDelay', 
@@ -519,14 +707,15 @@ def server(input, output, session):
 
     
     @output
-    @render.plot
+    @render_widget
     def origin_cancel_plot():
         data = pd.read_csv("origin_stats.csv")
         selected_origins = input.selected_origins()
-        if selected_origins != None:
+        if selected_origins:
             if isinstance(selected_origins, str):
                 selected_origins = [selected_origins]
             data = data[data['Origin'].isin(selected_origins)]
+        data = data.sort_values(by='CancelRate', ascending=False)
         fig = px.bar(data, 
                      x='Origin', 
                      y='CancelRate', 
@@ -535,14 +724,15 @@ def server(input, output, session):
         return fig
     
     @output
-    @render.plot
+    @render_widget
     def dest_delay_plot():
         data = pd.read_csv("dest_stats.csv")
         selected_dests = input.selected_dests()
-        if selected_dests != None:
+        if selected_dests:
             if isinstance(selected_dests, str):
                 selected_dests = [selected_dests]
             data = data[data['Dest'].isin(selected_dests)]
+        data = data.sort_values(by='AvgDelay', ascending=False)
         fig = px.bar(data, 
                      x='Dest', 
                      y='AvgDelay', 
@@ -552,14 +742,15 @@ def server(input, output, session):
 
     
     @output
-    @render.plot
+    @render_widget
     def dest_cancel_plot():
         data = pd.read_csv("dest_stats.csv")
         selected_dests = input.selected_dests()
-        if selected_dests != None:
+        if selected_dests:
             if isinstance(selected_dests, str):
                 selected_dests = [selected_dests]
             data = data[data['Dest'].isin(selected_dests)]
+        data = data.sort_values(by='CancelRate', ascending=False)
         fig = px.bar(data, 
                      x='Dest', 
                      y='CancelRate', 
